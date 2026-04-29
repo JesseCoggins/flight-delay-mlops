@@ -109,7 +109,7 @@ async def predict_delays(dest_airport: str, departure_time: str, arrival_time: s
             "arrival_airport": dest_airport,
             "departure_time": departure_time,
             "arrival_time": arrival_time,
-            "average_departure_delay_minutes": float(prediction)
+            "average_departure_delay_minutes": float(np.asarray(prediction).reshape(-1)[0])
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

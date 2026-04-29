@@ -1,1 +1,5 @@
 /cleaned_data.csv
+mlruns/
+notebooks/mlruns/
+polynomial_regression.txt
+notebooks/polynomial_regression.txt

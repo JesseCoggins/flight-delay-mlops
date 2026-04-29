@@ -7,4 +7,5 @@ mlflow
 fastapi
 uvicorn
 pytest
+httpx
 dvc

@@ -3,8 +3,8 @@
 ## Overview
 This project builds an end-to-end machine learning workflow for predicting average departure delay in minutes for flights leaving a selected origin airport. It combines data preparation, DVC-based data versioning, MLflow experiment tracking, a FastAPI prediction service, unit tests, and deployment-oriented assets.
 
-## Coursework Context
-This project was completed as part of my M.S. in Data Analytics program at Western Governors University (WGU).
+## Academic Context
+Completed during my M.S. in Data Analytics at Western Governors University (WGU), then packaged here as a reproducible public portfolio project.
 
 ## Project Goal
 Create a reproducible pipeline that prepares airline on-time data, trains a delay prediction model, logs experiments, and serves predictions through an API.
@@ -36,8 +36,10 @@ Create a reproducible pipeline that prepares airline on-time data, trains a dela
 - Logged metrics: mean squared error and average predicted delay
 
 ## Results
-- Final test MSE: 82.51
-- Average predicted delay: 4.68 minutes
+- Selected Ridge alpha: `3.8`
+- Final test MSE: `79.65`
+- Final test RMSE: `8.92` minutes
+- Mean predicted delay: `4.48` minutes
 
 ## Selected Visuals
 
@@ -61,6 +63,7 @@ The copied test suite covers:
 - missing required parameters returns `422`
 
 ## Reproducibility Notes
+- The model training notebook now uses a fixed train/validation split seed (`random_state=42`) so the saved metrics are reproducible.
 - The root-level deployment artifacts now include the original `airport_encodings.json` and `finalized_model.pkl` files used by the recovered GitLab-style API layout.
 - The `src/` and `tests/` directories keep the cleaned portfolio structure used elsewhere in this repository.
 

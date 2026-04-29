@@ -54,6 +54,7 @@ parser = argparse.ArgumentParser(description='Parse the parameters for the polyn
 parser.add_argument('num_alphas', metavar='N', type=int, help='Number of Lasso penalty increments')
 order = 1
 num_alpha_increments = 20
+RANDOM_STATE = 42
 
 # args = parser.parse_args() 
 # num_alpha_increments = args[0]
@@ -271,11 +272,14 @@ logging.info("Airport one-hot encoding successful")
 
 # %%
 # train/validation split at 30%
-X_train, X_validate, Y_train, Y_validate = train_test_split(X, Y, test_size=0.3)
+X_train, X_validate, Y_train, Y_validate = train_test_split(
+    X, Y, test_size=0.3, random_state=RANDOM_STATE
+)
 
 # %%
 with mlflow.start_run(experiment_id = experiment.experiment_id, run_name=run_name):
     score_min = 10000
+    best_alpha = None
     alpha_max = num_alphas * 2
     count = 1
     # loop through all alpha values
@@ -288,7 +292,7 @@ with mlflow.start_run(experiment_id = experiment.experiment_id, run_name=run_nam
         # fit the model using the training data
         X_ = poly.fit_transform(X_train)
         ridgereg.fit(X_, Y_train)
-        X_ = poly.fit_transform(X_validate)
+        X_ = poly.transform(X_validate)
         # predict against the validation data
         result = ridgereg.predict(X_)
         # how well did the model do when compared to the validation actuals?
@@ -299,14 +303,21 @@ with mlflow.start_run(experiment_id = experiment.experiment_id, run_name=run_nam
             mlflow.log_metric("Training Data Average Delay",np.sqrt(score))
         if score < score_min:
             score_min = score
-            parameters = [alpha, order]
+            best_alpha = alpha / 10
+            parameters = [best_alpha, order]
         logging.info("n={} alpha={} , MSE = {:<0.5}".format(order, alpha/10, score))
         count +=1
     # train and predict on validation data with optimal alpha found
-    X_ = poly.fit_transform(X_validate)
+    ridgereg = Ridge(alpha=best_alpha)
+    poly = PolynomialFeatures(degree=order)
+    X_ = poly.fit_transform(X_train)
+    ridgereg.fit(X_, Y_train)
+    X_ = poly.transform(X_validate)
     tresult = ridgereg.predict(X_)
     tscore = metrics.mean_squared_error(tresult, Y_validate)
     logging.info('Training Data Final MSE = {}'.format(round(tscore, 2)))
+    logging.info('Selected alpha = {}'.format(best_alpha))
+    mlflow.log_param("Selected Alpha", best_alpha)
     mlflow.log_metric("Training Data Mean Squared Error",tscore)
     mlflow.log_metric("Training Data Average Delay",np.sqrt(tscore))
 mlflow.end_run()
@@ -350,15 +361,16 @@ logging.info("Wrangling of test data successful")
 
 # %%
 # create polynomial features based on order
-X_ = poly.fit_transform(X_test)
+X_ = poly.transform(X_test)
 # predict on last week of month data
 result = ridgereg.predict(X_)
 score = metrics.mean_squared_error(result, Y_test)
+test_rmse = float(np.sqrt(score))
 logging.info('Test Data MSE = {}'.format(round(score, 2)))
 logging.info("Predictions using test data successful")
 
 # %%
-logging.info('Test Data average delay = {:.2f} min'.format(np.sqrt(score)))
+logging.info('Test Data RMSE = {:.2f} min'.format(test_rmse))
 
 # %%
 # export final model
@@ -367,19 +379,10 @@ pickle.dump(ridgereg, open(filename, 'wb'))
 logging.info("Final model export successful")
 
 # %%
-# Error troubleshooting in model performance plot
-print(len(np.asarray(result).reshape(-1)), len(np.asarray(Y).reshape(-1)))
-
-# %%
-# Check shapes of result and Y to ensure they match for plotting
-print("result shape:", np.array(result).shape)
-print("Y shape:", np.array(Y).shape)
-
-# %%
 # create and export model performance plot
 tips = pd.DataFrame()
 tips["prediction"] = pd.Series(result.flatten())            # The model's predict() method returns a 1D array, so we use .flatten() to convert it to a
-tips["original_data"] = pd.Series(Y.flatten())              # 1D array before creating the DataFrame. This also resolved a NumPy deprecation warning.
+tips["original_data"] = pd.Series(Y_test.flatten())         # 1D array before creating the DataFrame. This also resolved a NumPy deprecation warning.
 sns.jointplot(x="original_data", y="prediction", data=tips, height = 6, ratio = 7,
               joint_kws={'line_kws':{'color':'limegreen'}}, kind='reg')
 plt.xlabel('Mean delays (min)', fontsize = 15)
@@ -410,9 +413,7 @@ with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Final Mo
     mlflow.log_artifact(str(logname))
 
     # 2. The input parameters (alpha and order) to the final regression against the test data
-    alpha = 20
-    order = 1
-    mlflow.log_param("alpha", alpha)
+    mlflow.log_param("alpha", parameters[0])
     mlflow.log_param("order", order)
 
     # 3. The performance plot
@@ -431,7 +432,9 @@ with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Final Mo
     mlflow.log_metric("mean_squared_error", mse)
     mlflow.log_metric("average_delay_minutes", avg_delay)
     # Print the calculated values
+    print(f"Selected Ridge alpha: {parameters[0]}")
     print(f"Mean Squared Error (MSE) of the model on test data: {mse}")
+    print(f"Root Mean Squared Error (RMSE) of the model on test data: {test_rmse}")
     print(f"Average delay predicted by the model (in minutes): {avg_delay}")
 
 # This will automatically end the run
