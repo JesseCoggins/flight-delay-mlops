@@ -1,74 +1,18 @@
-# Flight Delay MLOps Pipeline
+# Flight-delay prediction pipeline and API
 
-## Overview
-This project builds an end-to-end machine learning workflow for predicting average departure delay in minutes for flights leaving a selected origin airport. It combines data preparation, DVC-based data versioning, MLflow experiment tracking, a FastAPI prediction service, unit tests, and deployment-oriented assets.
+I built a service that an airline planner can query for the **average departure delay** from Atlanta given a destination and scheduled departure and arrival times. Starting from the raw flight records, the training pipeline reproduces a held-out root mean squared error of **8.92 minutes**. The estimate applies to routine schedules. Departures delayed by an hour or more were excluded from the evaluation.
 
-## How an airline planner could use the estimate
+[Inspect the serving code](src/deployment_api.py) · [Review the training notebook](notebooks/flight_delay_mlflow_tracking.ipynb) · [Read the API tests](tests/test_api.py)
 
-A planner comparing Atlanta departure schedules can request an expected delay for a destination and scheduled times. The model estimates an average for that route and time combination. Its held-out RMSE of 8.92 minutes gives a sense of the precision available for routine planning. The pipeline excludes departures delayed by an hour or more, so major disruptions fall outside that evaluation.
+## From flight records to a prediction
 
-## Academic Context
-Completed during my M.S. in Data Analytics at Western Governors University (WGU), then packaged here as a reproducible public portfolio project.
-
-## Project Goal
-Create a reproducible pipeline that prepares airline on-time data, trains a delay prediction model, logs experiments, and serves predictions through an API.
-
-## Pipeline Summary
-1. Import and format airline on-time performance data
-2. Filter the dataset to departures from Atlanta
-3. Clean the data by removing missing departures, removing duplicates, and standardizing spacing
-4. Train a Ridge regression model using encoded destination airports plus departure and arrival times
-5. Track experiments, metrics, parameters, and artifacts in MLflow
-6. Expose predictions through a FastAPI endpoint
-7. Validate endpoint behavior with pytest
-
-## Stack
-- Python
-- scikit-learn
-- DVC
-- MLflow
-- FastAPI
-- Docker
-- GitLab CI/CD
-- pytest
-
-## Model
-- Problem type: regression
-- Algorithm: Ridge regression
-- Features: one-hot encoded destination airport, scheduled departure time, scheduled arrival time
-- Alpha sweep: 20 values from 0.0 to 3.8
-- Logged metrics: mean squared error and average predicted delay
-
-## Results
-- Selected Ridge alpha: `3.8`
-- Final test MSE: `79.65`
-- Final test RMSE: `8.92` minutes
-- Mean predicted delay: `4.48` minutes
-
-## Selected Visuals
-
-![Performance plot](assets/performance_plot.png)
-
-![Model performance output](assets/model_performance_test.jpg)
-
-## API
-### Endpoints
-- `GET /`
-- `GET /predict/delays`
-
-### Example
-`/predict/delays?dest_airport=LAX&departure_time=14:30&arrival_time=17:45`
-
-## Testing
-The copied test suite covers:
-- valid request returns `200`
-- invalid airport returns `400`
-- invalid time format returns `400`
-- missing required parameters returns `422`
+1. **Prepare the data.** Filter the raw on-time records to Atlanta departures, remove duplicates and incomplete records, and build the mapping between IATA airport codes and numeric BTS IDs. The preparation script produced 22,580 cleaned flight records. [Preprocessing code](src/Task_2.py) · [DVC data pointers](data/)
+2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8. Test MSE was 79.65 minutes squared and the mean prediction was 4.48 minutes. [Training script](src/Task_2_MLFlow.py) · [Performance plot](assets/performance_plot.png)
+3. **Serve and test.** FastAPI loads the model and encoding files from `src/`. The root and packaged entry points share that service. Tests cover a valid prediction, airport aliases, invalid inputs and missing parameters. The GitLab CI configuration includes a job that rebuilds the model before testing it. [Tests](tests/test_api.py) · [GitLab CI](.gitlab-ci.yml) · [Dockerfile](Dockerfile)
 
 ## Run and test
 
-From the repository root with Python 3.11, install the dependencies and launch the API.
+In a Python 3.11 environment, run these commands from the repository root:
 
 ~~~sh
 python -m pip install -r requirements.txt
@@ -76,47 +20,31 @@ python -m pytest -q tests
 python -m uvicorn deployment_api:app
 ~~~
 
-Both ASGI entry points use the same trained model and preprocessing artifacts from the src directory. A request can use an IATA code such as LAX or its BTS ID, 12892. The lookup comes from the paired destination fields in the supplied Atlanta flight records. The time fields are local scheduled times in HH:MM format.
+## API
 
-To rebuild the cleaned data and retrain the model, run the following from the repository root. This writes the model and airport encodings consumed by the API. The GitLab training job runs both steps before testing the rebuilt service.
+With the server running, send a request from a second terminal. For the packaged model, this example returns about **4.55 minutes**. Using BTS destination ID `12892` in place of `LAX` gives the same prediction. Times are local scheduled times in `HH:MM` format.
+
+~~~sh
+curl "http://127.0.0.1:8000/predict/delays?dest_airport=LAX&departure_time=14:30&arrival_time=17:45"
+~~~
+
+Six tests passed on the published service. `GET /` provides a health check. `GET /predict/delays` returns a prediction, HTTP 400 for an unknown airport or invalid time, and HTTP 422 for missing required parameters.
+
+## Rebuild the served model
 
 ~~~sh
 python src/Task_2.py
 python src/Task_2_MLFlow.py
 ~~~
 
+These scripts write the model and encodings used by the API. DVC metadata accompanies the raw and cleaned CSVs. Both datasets are included. [Data and version pointers](data/) · [Python dependencies](requirements.txt)
+
 ## Notebooks
 
-Open the notebooks with `notebooks/` as the working directory and run them in this order.
-
-1. [Prepare the flight records](notebooks/flight_delay_pipeline.ipynb). This notebook filters the raw BTS data to Atlanta departures, cleans the records and writes `../data/cleaned_data.csv`.
-2. [Train and evaluate the delay model](notebooks/flight_delay_mlflow_tracking.ipynb). This notebook reads that CSV, compares 20 Ridge settings, and logs the selected model’s held-out results with MLflow. Running it rewrites the model and airport encoding exports at the repository root. The scripts in **Run and test** rebuild the artifacts the API loads from `src/`.
-
-## Included Files
-- `notebooks/flight_delay_pipeline.ipynb`
-- `notebooks/flight_delay_mlflow_tracking.ipynb`
-- `Dockerfile`
-- `.gitlab-ci.yml`
-- `deployment_api.py`
-- `api_tests.py`
-- `src/deployment_api.py`
-- `src/airport_encodings.json`
-- `src/finalized_model.pkl`
-- `tests/test_api.py`
-- `data/cleaned_data.csv`
-- `data/T_ONTIME_REPORTING.csv`
-- `data/*.dvc`
-- `.dvc/config`
-- `.dvcignore`
-- `.gitignore`
-- `requirements.txt`
-- `assets/model_performance_test.jpg`
-- `assets/performance_plot.png`
-
-## Coursework artifacts
-
-The root-level model and encoding files preserve the earlier coursework export. The service loads the matching numeric-ID model and encoding table under src, with an IATA lookup generated during preprocessing. MLflow experiment tracking runs directly from the training script or notebook.
+For the interactive coursework workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings at the repository root, overwriting the earlier coursework exports there.
 
 ## A separate grocery MLOps design
 
-The [Kronkers case study](docs/kronkers-mlops-design.md) connects inventory decisions to forecast monitoring, release controls, retraining and operating costs.
+The [Kronkers case study](docs/kronkers-mlops-design.md) explains how to tie a grocery forecast to stockouts, monitoring, retraining and rollback decisions.
+
+*WGU M.S. in Data Analytics coursework, D602 Deployment.*
