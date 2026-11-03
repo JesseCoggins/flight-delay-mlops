@@ -3,6 +3,10 @@
 ## Overview
 This project builds an end-to-end machine learning workflow for predicting average departure delay in minutes for flights leaving a selected origin airport. It combines data preparation, DVC-based data versioning, MLflow experiment tracking, a FastAPI prediction service, unit tests, and deployment-oriented assets.
 
+## How an airline planner could use the estimate
+
+A planner comparing Atlanta departure schedules can request an expected delay for a destination and scheduled times. The model estimates an average for that route and time combination. Its held-out RMSE of 8.92 minutes gives a sense of the precision available for routine planning. The pipeline excludes departures delayed by an hour or more, so major disruptions fall outside that evaluation.
+
 ## Academic Context
 Completed during my M.S. in Data Analytics at Western Governors University (WGU), then packaged here as a reproducible public portfolio project.
 
