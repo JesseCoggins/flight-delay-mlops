@@ -86,8 +86,11 @@ python src/Task_2_MLFlow.py
 ~~~
 
 ## Notebooks
-- `notebooks/flight_delay_pipeline.ipynb` — end-to-end data pipeline: imports and formats BTS on-time data, filters to Atlanta departures, cleans missing values and duplicates, trains Ridge regression, and evaluates on the test set
-- `notebooks/flight_delay_mlflow_tracking.ipynb` — MLflow experiment tracking run: sweeps 20 alpha values, logs parameters, metrics, and the final model artifact
+
+Open the notebooks with `notebooks/` as the working directory and run them in this order.
+
+1. [Prepare the flight records](notebooks/flight_delay_pipeline.ipynb). This notebook filters the raw BTS data to Atlanta departures, cleans the records and writes `../data/cleaned_data.csv`.
+2. [Train and evaluate the delay model](notebooks/flight_delay_mlflow_tracking.ipynb). This notebook reads that CSV, compares 20 Ridge settings, and logs the selected model’s held-out results with MLflow. Running it rewrites the model and airport encoding exports at the repository root. The scripts in **Run and test** rebuild the artifacts the API loads from `src/`.
 
 ## Included Files
 - `notebooks/flight_delay_pipeline.ipynb`
