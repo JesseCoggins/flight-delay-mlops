@@ -1,5 +1,5 @@
-# Use Python 3.9 slim image as base
-FROM python:3.9-slim
+# Use Python 3.11 slim image as base
+FROM python:3.11-slim
 
 # Set working directory in container
 WORKDIR /app
@@ -12,8 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY deployment_api.py .
-COPY airport_encodings.json .
-COPY finalized_model.pkl .
+COPY src/deployment_api.py src/airport_encodings.json src/iata_to_bts.json src/finalized_model.pkl ./src/
 
 # Expose port 8000
 EXPOSE 8000

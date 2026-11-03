@@ -6,16 +6,15 @@ from fastapi import FastAPI, HTTPException
 import json
 import numpy as np
 import pickle
-import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Import the airport encodings file
-f = open(BASE_DIR / 'airport_encodings.json')
- 
-# returns JSON object as a dictionary
-airports = json.load(f)
+with (BASE_DIR / "airport_encodings.json").open() as f:
+    airports = json.load(f)
+with (BASE_DIR / "iata_to_bts.json").open() as f:
+    iata_to_bts = json.load(f)
+
 
 def create_airport_encoding(airport: str, airports: dict) -> np.array:
     """
@@ -46,9 +45,6 @@ def create_airport_encoding(airport: str, airports: dict) -> np.array:
         return None
 
 
-
-
-
 def time_to_seconds(time_str: str) -> int:
     """Convert time string in HH:MM format to seconds since midnight"""
     try:
@@ -63,7 +59,8 @@ def time_to_seconds(time_str: str) -> int:
 def predict_flight(dest_airport: str, departure_time: str, arrival_time: str, polynomial_order: int = 1):
     """Make prediction using the trained model"""
     # Create airport encoding for destination airport
-    airport_encoding = create_airport_encoding(dest_airport, airports)
+    airport_id = iata_to_bts.get(dest_airport.strip().upper(), dest_airport.strip())
+    airport_encoding = create_airport_encoding(airport_id, airports)
     if airport_encoding is None:
         raise ValueError(f"Destination airport code '{dest_airport}' not found")
     
@@ -84,9 +81,6 @@ with open(BASE_DIR / 'finalized_model.pkl', 'rb') as model_file:
     model = pickle.load(model_file)
 
 
-
-
-
 app = FastAPI()
 
 @app.get("/")
@@ -99,7 +93,6 @@ async def predict_delays(dest_airport: str, departure_time: str, arrival_time: s
     """Endpoint to predict departure delays"""
     try:
         prediction = predict_flight(
-            #org_airport=org_airport,
             dest_airport=dest_airport,
             departure_time=departure_time,
             arrival_time=arrival_time,
@@ -111,5 +104,5 @@ async def predict_delays(dest_airport: str, departure_time: str, arrival_time: s
             "arrival_time": arrival_time,
             "average_departure_delay_minutes": float(np.asarray(prediction).reshape(-1)[0])
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e

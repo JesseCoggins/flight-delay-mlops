@@ -80,7 +80,7 @@ df = pd.read_csv(DATA_DIR / "cleaned_data.csv")
 tab_info=pd.DataFrame(df.dtypes).T.rename(index={0:'column type'})
 
 # %%
-display(df.head())
+print(df.head())
 
 # %%
 def grab_month_year(df:pd.DataFrame) -> tuple:
@@ -441,5 +441,3 @@ with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Final Mo
 # mlflow.end_run() is not needed with the 'with' statement that scopes the run
 
 logging.shutdown()
-
-

@@ -3,6 +3,7 @@
 # coding: utf-8
 
 # Library Import
+import json
 import pandas as pd
 from pathlib import Path
 
@@ -12,6 +13,15 @@ DATA_DIR = ROOT / "data"
 # Importing Dataset
 file_path = DATA_DIR / "T_ONTIME_REPORTING.csv"
 df = pd.read_csv(file_path)
+
+# Preserve the BTS destination ID that corresponds to each IATA input.
+destinations = df.loc[df['ORIGIN'].eq('ATL'), ['DEST', 'DEST_AIRPORT_ID']].drop_duplicates()
+if not destinations['DEST'].is_unique or not destinations['DEST_AIRPORT_ID'].is_unique:
+    raise ValueError("Conflicting airport identifiers for Atlanta departures")
+iata_to_bts = dict(zip(destinations['DEST'], destinations['DEST_AIRPORT_ID'].astype(str)))
+with (ROOT / "src" / "iata_to_bts.json").open("w") as f:
+    json.dump(iata_to_bts, f, indent=2, sort_keys=True)
+    f.write("\n")
 
 # Display df
 df.head(10)
@@ -46,16 +56,16 @@ df = df.rename(columns={
 # Check data types of each column
 print(df.dtypes)
 
-display(df)
+print(df.head())
 
 # %%
 # Filtering by Origin Airport (ATL)
 # Dest Airport ID: 10397
 
-df_atl = df[df['ORG_AIRPORT'] == 10397]
+df_atl = df[df['ORG_AIRPORT'] == 10397].copy()
 
 # Display the filtered dataframe
-display(df_atl)
+print(df_atl.head())
 
 df = df_atl
 
@@ -63,7 +73,7 @@ df = df_atl
 # Check for missing values by column
 missing_values = df.isnull().sum()
 
-display(missing_values)
+print(missing_values)
 
 # %%
 # Dropping rows with missing values in specific columns
@@ -72,7 +82,7 @@ df.dropna(subset=['DEPARTURE_TIME', 'DEPARTURE_DELAY', 'ARRIVAL_TIME', 'ARRIVAL_
 #Ensuring null data is removed
 missing_values = df.isnull().sum()
 
-display(missing_values)
+print(missing_values)
 
 # %%
 # Convert ORG_AIRPORT and DEST_AIRPORT to string type
@@ -93,7 +103,7 @@ print(f"Number of duplicate rows: {num_duplicates}")
 # Display duplicate rows if any
 if num_duplicates > 0:
     # Display the duplicate rows before dropping them
-    display(df[duplicates])
+    print(df[duplicates].head())
     
     # Drop duplicate rows
     df.drop_duplicates(inplace=True)
@@ -111,5 +121,3 @@ df = df.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else
 # %%
 # Save the dataframe to a CSV file
 df.to_csv(DATA_DIR / 'cleaned_data.csv', index=False)
-
-

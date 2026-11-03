@@ -62,10 +62,24 @@ The copied test suite covers:
 - invalid time format returns `400`
 - missing required parameters returns `422`
 
-## Reproducibility Notes
-- The model training notebook now uses a fixed train/validation split seed (`random_state=42`) so the saved metrics are reproducible.
-- The root-level deployment artifacts now include the original `airport_encodings.json` and `finalized_model.pkl` files used by the recovered GitLab-style API layout.
-- The `src/` and `tests/` directories keep the cleaned portfolio structure used elsewhere in this repository.
+## Run and test
+
+From the repository root with Python 3.11, install the dependencies and launch the API.
+
+~~~sh
+python -m pip install -r requirements.txt
+python -m pytest -q tests
+python -m uvicorn deployment_api:app
+~~~
+
+Both ASGI entry points use the same trained model and preprocessing artifacts from the src directory. A request can use an IATA code such as LAX or its BTS ID, 12892. The lookup comes from the paired destination fields in the supplied Atlanta flight records. The time fields are local scheduled times in HH:MM format.
+
+To rebuild the cleaned data and retrain the model, run the following from the repository root. This writes the model and airport encodings consumed by the API. The GitLab training job runs both steps before testing the rebuilt service.
+
+~~~sh
+python src/Task_2.py
+python src/Task_2_MLFlow.py
+~~~
 
 ## Notebooks
 - `notebooks/flight_delay_pipeline.ipynb` — end-to-end data pipeline: imports and formats BTS on-time data, filters to Atlanta departures, cleans missing values and duplicates, trains Ridge regression, and evaluates on the test set
@@ -81,7 +95,7 @@ The copied test suite covers:
 - `src/deployment_api.py`
 - `src/airport_encodings.json`
 - `src/finalized_model.pkl`
-- `tests/api_tests.py`
+- `tests/test_api.py`
 - `data/cleaned_data.csv`
 - `data/T_ONTIME_REPORTING.csv`
 - `data/*.dvc`
@@ -92,10 +106,10 @@ The copied test suite covers:
 - `assets/model_performance_test.jpg`
 - `assets/performance_plot.png`
 
-## Note
-This public portfolio repo keeps two parallel layouts for transparency:
+## Coursework artifacts
 
-- Root-level `Dockerfile`, `.gitlab-ci.yml`, `deployment_api.py`, `airport_encodings.json`, `finalized_model.pkl`, and `api_tests.py` preserve the original GitLab-style deployment artifacts restored from the original Task 3 coursework folder.
-- The `src/` and `tests/` directories preserve the cleaned public portfolio structure used elsewhere in this repo.
+The root-level model and encoding files preserve the earlier coursework export. The service loads the matching numeric-ID model and encoding table under src, with an IATA lookup generated during preprocessing. MLflow experiment tracking runs directly from the training script or notebook.
 
-An `MLproject` file — the YAML config MLflow uses to define entry points and run a project via `mlflow run` — is not included here. The MLflow work in this repo is demonstrated through the experiment tracking notebook rather than as a runnable MLflow Project, so the file isn't required to follow or reproduce the workflow.
+## A separate grocery MLOps design
+
+The [Kronkers case study](docs/kronkers-mlops-design.md) connects inventory decisions to forecast monitoring, release controls, retraining and operating costs.

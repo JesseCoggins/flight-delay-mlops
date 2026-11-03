@@ -7,13 +7,26 @@ stages:
 
 pytest:
   stage: test
-  image: python
-  rules:
-    - exists:
-      - "test_*.py"
+  image: python:3.11-slim
   script:
-    - pip install --no-cache-dir --upgrade -r requirements.txt
-    - pytest
+    - pip install --no-cache-dir -r requirements.txt
+    - python -m pytest -q tests
+
+training:
+  stage: test
+  image: python:3.11-slim
+  variables:
+    MPLBACKEND: Agg
+    MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+  script:
+    - pip install --no-cache-dir -r requirements.txt
+    - python src/Task_2.py
+    - python src/Task_2_MLFlow.py
+    - python -m pytest -q tests
+  artifacts:
+    paths:
+      - assets/performance_plot.png
+      - assets/polynomial_regression.txt
 
 r-tests:
   stage: test

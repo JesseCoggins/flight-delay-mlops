@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# import statements
-import pytest
-import sys
-from pathlib import Path
 from fastapi.testclient import TestClient
 
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from deployment_api import app
+from src.deployment_api import app as packaged_app
 
 # Create test client
 client = TestClient(app)
@@ -59,3 +54,12 @@ def test_missing_parameters():
     assert response.status_code == 422
     
 
+
+def test_entry_points_and_airport_aliases_agree():
+    assert app is packaged_app
+    params = {"departure_time": "14:30", "arrival_time": "17:45"}
+    codes = ["LAX", "12892"]
+    responses = [client.get("/predict/delays", params={**params, "dest_airport": code}) for code in codes]
+    assert [response.status_code for response in responses] == [200, 200]
+    delays = [response.json()["average_departure_delay_minutes"] for response in responses]
+    assert delays[0] == delays[1]
