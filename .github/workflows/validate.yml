@@ -38,8 +38,18 @@ jobs:
         run: |
           docker run --detach --rm --name flight-delay-check \
             --publish 127.0.0.1:8000:8000 flight-delay-validation
-          curl --fail --silent --show-error --retry 30 --retry-connrefused \
-            --retry-delay 2 --retry-max-time 90 http://127.0.0.1:8000/
+          ready=false
+          for attempt in {1..45}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8000/; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            docker logs flight-delay-check
+            exit 1
+          fi
           docker exec flight-delay-check python -c "import json, math, urllib.request; result=json.load(urllib.request.urlopen('http://127.0.0.1:8000/predict/delays?dest_airport=LAX&departure_time=14:30&arrival_time=17:45')); value=result['average_departure_delay_minutes']; assert isinstance(value,(int,float)) and math.isfinite(value); print('Prediction smoke test passed')"
 
       - name: Stop the validation container
