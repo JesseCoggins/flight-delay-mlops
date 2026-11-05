@@ -43,6 +43,8 @@ These scripts write the model and encodings used by the API. DVC metadata accomp
 
 For the interactive coursework workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings at the repository root. To rebuild the artifacts loaded from `src/` by the API, use the scripts above.
 
+The sweep tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; larger penalties were not evaluated, so a better value may lie beyond this range.
+
 ## Reproducibility
 
 The 70/30 training-validation split uses `random_state=42`. The pipeline refits the selected Ridge alpha, logs that value in MLflow, and packages matching model and encoding files for the API. The held-out test MSE is **79.6481**, RMSE **8.9246 minutes**, and mean prediction **4.4765 minutes**.
