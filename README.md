@@ -1,6 +1,6 @@
 # Flight-delay prediction pipeline and API
 
-I built a service that an airline planner can query for the **average departure delay** from Atlanta given a destination and scheduled departure and arrival times. Starting from the raw flight records, the training pipeline reproduces a held-out root mean squared error of **8.92 minutes**. The estimate applies to routine schedules. Departures delayed by an hour or more were excluded from the evaluation.
+I built a service that an airline planner can query for the **average departure delay** from Atlanta given a destination and scheduled departure and arrival times. Starting from the raw flight records, the training pipeline reproduces a held-out root mean squared error of **8.92 minutes**. The estimate applies to routine schedules. I excluded departures delayed by an hour or more from the evaluation.
 
 [Inspect the serving code](src/deployment_api.py) · [Review the training notebook](notebooks/flight_delay_mlflow_tracking.ipynb) · [Read the API tests](tests/test_api.py)
 
@@ -10,9 +10,11 @@ I built a service that an airline planner can query for the **average departure 
 2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8; the full held-out metrics are in [Reproducibility](#reproducibility). [Training script](src/train.py) · [Performance plot](assets/performance_plot.png)
 3. **Serve and test.** FastAPI loads the model and encoding files from `src/`. The root and packaged entry points share that service. Tests cover a valid prediction, airport aliases, invalid inputs and missing parameters. GitHub Actions builds the Docker image, runs the six API tests and checks the running service. [Tests](tests/test_api.py) · [GitHub Actions](.github/workflows/validate.yml) · [Dockerfile](Dockerfile)
 
-## Run and test
+## Run it yourself
 
-In a Python 3.11 or 3.13 environment, run these commands from the repository root:
+### Install and test
+
+From the repository root in Python 3.11 or 3.13:
 
 ~~~sh
 python -m pip install -r requirements.txt
@@ -20,34 +22,34 @@ python -m pytest -q tests
 python -m uvicorn deployment_api:app
 ~~~
 
-## API
+Six tests passed locally and inside the Docker image, along with container health and prediction checks. [Validation details](docs/validation.md).
 
-With the server running, send a request from a second terminal. For the packaged model, this example returns about **4.55 minutes**. Using BTS destination ID `12892` in place of `LAX` gives the same prediction. Times are local scheduled times in `HH:MM` format.
+### Query the API
+
+From a second terminal:
 
 ~~~sh
 curl "http://127.0.0.1:8000/predict/delays?dest_airport=LAX&departure_time=14:30&arrival_time=17:45"
 ~~~
 
-Six API tests passed on a clean checkout and inside the built Docker image. The running container also passed health and prediction smoke checks. [Validation details](docs/validation.md). `GET /` provides a health check. `GET /predict/delays` returns a prediction, HTTP 400 for an unknown airport or invalid time, and HTTP 422 for missing required parameters.
+The packaged model returns about **4.55 minutes**. BTS ID `12892` gives the same result as `LAX`; times are local scheduled times in `HH:MM` format. `GET /` checks service health. `GET /predict/delays` returns HTTP 400 for an unknown airport or invalid time and HTTP 422 for missing parameters.
 
-## Rebuild the served model
-
-The sweep tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; larger penalties were not evaluated, so a better value may lie beyond this range.
+### Rebuild the model
 
 ~~~sh
 python src/preprocess.py
 python src/train.py
 ~~~
 
-Both scripts and the training notebook export the served model and airport encodings to `src/`. The root `deployment_api.py` is a compatibility entry point for the same FastAPI application. Both CSVs are committed directly in Git; the DVC pointer files record their checksums. No DVC remote is configured and `dvc pull` is not required. [Data and version pointers](data/) · [Python dependencies](requirements.txt)
+The scripts export the served model and encodings to `src/`; the root `deployment_api.py` points to the same application. For notebook use, set the working directory to `notebooks/`, run [preparation](notebooks/flight_delay_pipeline.ipynb), then [training](notebooks/flight_delay_mlflow_tracking.ipynb). They read and write `../data/cleaned_data.csv` and export to `../src/`.
 
-## Notebooks
+Both CSVs are committed in Git. DVC pointers record their checksums; no remote or `dvc pull` is needed. [Data notes](data/README.md).
 
-For the interactive workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings to `../src/`, matching the scripts and API.
+### Reproducibility
 
-## Reproducibility
+I used a 70/30 training-validation split with `random_state=42` and refitted the selected Ridge alpha before packaging the model. Held-out MSE is **79.6481**, RMSE **8.9246 minutes**, and mean prediction **4.4765 minutes**.
 
-The 70/30 training-validation split uses `random_state=42`. The pipeline refits the selected Ridge alpha, logs that value in MLflow, and packages matching model and encoding files for the API. The held-out test MSE is **79.6481**, RMSE **8.9246 minutes**, and mean prediction **4.4765 minutes**.
+I tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; a better value may lie beyond that range.
 
 ## A separate grocery MLOps design
 
