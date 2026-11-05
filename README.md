@@ -28,7 +28,7 @@ With the server running, send a request from a second terminal. For the packaged
 curl "http://127.0.0.1:8000/predict/delays?dest_airport=LAX&departure_time=14:30&arrival_time=17:45"
 ~~~
 
-Six tests passed on the published service. `GET /` provides a health check. `GET /predict/delays` returns a prediction, HTTP 400 for an unknown airport or invalid time, and HTTP 422 for missing required parameters.
+Six API tests passed on a clean checkout and inside the built Docker image. The running container also passed health and prediction smoke checks. [Validation details](docs/validation.md). `GET /` provides a health check. `GET /predict/delays` returns a prediction, HTTP 400 for an unknown airport or invalid time, and HTTP 422 for missing required parameters.
 
 ## Rebuild the served model
 
