@@ -6,13 +6,13 @@ I built a service that an airline planner can query for the **average departure 
 
 ## From flight records to a prediction
 
-1. **Prepare the data.** Filter the raw on-time records to Atlanta departures, remove duplicates and incomplete records, and build the mapping between IATA airport codes and numeric BTS IDs. The preparation script produced 22,580 cleaned flight records. [Preprocessing code](src/Task_2.py) · [DVC data pointers](data/)
-2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8. Test MSE was 79.65 minutes squared and the mean prediction was 4.48 minutes. [Training script](src/Task_2_MLFlow.py) · [Performance plot](assets/performance_plot.png)
-3. **Serve and test.** FastAPI loads the model and encoding files from `src/`. The root and packaged entry points share that service. Tests cover a valid prediction, airport aliases, invalid inputs and missing parameters. The GitLab CI configuration includes a job that rebuilds the model before testing it. [Tests](tests/test_api.py) · [GitLab CI](.gitlab-ci.yml) · [Dockerfile](Dockerfile)
+1. **Prepare the data.** Filter the raw on-time records to Atlanta departures, remove duplicates and incomplete records, and build the mapping between IATA airport codes and numeric BTS IDs. The preparation script produced 22,580 cleaned flight records. [Preprocessing code](src/preprocess.py) · [DVC data pointers](data/)
+2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8. Test MSE was 79.65 minutes squared and the mean prediction was 4.48 minutes. [Training script](src/train.py) · [Performance plot](assets/performance_plot.png)
+3. **Serve and test.** FastAPI loads the model and encoding files from `src/`. The root and packaged entry points share that service. Tests cover a valid prediction, airport aliases, invalid inputs and missing parameters. GitHub Actions builds the Docker image, runs the six API tests and checks the running service. [Tests](tests/test_api.py) · [GitHub Actions](.github/workflows/validate.yml) · [Dockerfile](Dockerfile)
 
 ## Run and test
 
-In a Python 3.11 environment, run these commands from the repository root:
+In a Python 3.11 or 3.13 environment, run these commands from the repository root:
 
 ~~~sh
 python -m pip install -r requirements.txt
@@ -32,18 +32,18 @@ Six API tests passed on a clean checkout and inside the built Docker image. The 
 
 ## Rebuild the served model
 
+The sweep tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; larger penalties were not evaluated, so a better value may lie beyond this range.
+
 ~~~sh
-python src/Task_2.py
-python src/Task_2_MLFlow.py
+python src/preprocess.py
+python src/train.py
 ~~~
 
-These scripts write the model and encodings used by the API. DVC metadata accompanies the raw and cleaned CSVs. Both datasets are included. [Data and version pointers](data/) · [Python dependencies](requirements.txt)
+Both scripts and the training notebook export the served model and airport encodings to `src/`. The root `deployment_api.py` is a compatibility entry point for the same FastAPI application. Both CSVs are committed directly in Git; the DVC pointer files record their checksums. No DVC remote is configured and `dvc pull` is not required. [Data and version pointers](data/) · [Python dependencies](requirements.txt)
 
 ## Notebooks
 
-For the interactive coursework workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings at the repository root. To rebuild the artifacts loaded from `src/` by the API, use the scripts above.
-
-The sweep tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; larger penalties were not evaluated, so a better value may lie beyond this range.
+For the interactive workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings to `../src/`, matching the scripts and API.
 
 ## Reproducibility
 
@@ -52,5 +52,9 @@ The 70/30 training-validation split uses `random_state=42`. The pipeline refits 
 ## A separate grocery MLOps design
 
 The [Kronkers case study](docs/kronkers-mlops-design.md) explains how to tie a grocery forecast to stockouts, monitoring, retraining and rollback decisions.
+
+## Data and environment
+
+[Data origin and reuse notes](data/README.md). Install [requirements.txt](requirements.txt), which includes [the checked direct package versions](requirements-verified.txt). Preprocessing and MLflow training were rerun with these direct package versions on Python 3.13.1, reproducing MSE 79.6481 and RMSE 8.9246. The six API tests and Docker validation are described in [validation details](docs/validation.md). These are direct dependency pins, not a complete transitive lockfile.
 
 *WGU M.S. in Data Analytics coursework, D602 Deployment.*
