@@ -2,6 +2,10 @@
 
 I built a service that an airline planner can query for the **average departure delay** from Atlanta given a destination and scheduled departure and arrival times. Starting from the raw flight records, the training pipeline reproduces a held-out root mean squared error of **8.92 minutes**. The estimate applies to routine schedules. I excluded departures delayed by an hour or more from the evaluation.
 
+![Actual versus predicted average flight delays for held-out route and schedule groups](assets/model_performance_test.jpg)
+
+*Actual versus predicted mean delays on held-out route/schedule groups. Departures delayed by an hour or more were excluded.*
+
 [Inspect the serving code](src/deployment_api.py) · [Review the training notebook](notebooks/flight_delay_mlflow_tracking.ipynb) · [Read the API tests](tests/test_api.py)
 
 ## From flight records to a prediction
