@@ -41,13 +41,11 @@ These scripts write the model and encodings used by the API. DVC metadata accomp
 
 ## Notebooks
 
-For the interactive coursework workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings at the repository root, overwriting the earlier coursework exports there.
+For the interactive coursework workflow, use `notebooks/` as the working directory. Run [flight preparation](notebooks/flight_delay_pipeline.ipynb) first. It writes `../data/cleaned_data.csv`, which [MLflow training and evaluation](notebooks/flight_delay_mlflow_tracking.ipynb) reads. The training notebook writes its model and airport encodings at the repository root. To rebuild the artifacts loaded from `src/` by the API, use the scripts above.
 
-## Coursework and portfolio versions
+## Reproducibility
 
-The submitted saved run reports test MSE **82.5104** and mean predicted delay **4.6806 minutes**. The published pipeline is a revised, reproducible implementation: its 70/30 training-validation split sets `random_state=42`, it explicitly refits the selected Ridge alpha, and both API entry points use the matching model and encodings. A fresh pipeline run reproduced MSE **79.6481**, RMSE **8.9246 minutes**, and mean prediction **4.4765 minutes**. These are results of the portfolio version, not a transcription of the original submitted run.
-
-The original final MLflow block logs a hard-coded alpha of 20, although the training loop uses `alpha/10` and ends at 3.8. The portfolio logs the selected alpha of 3.8. Re-fitting degree-one `PolynomialFeatures` does not learn distribution-dependent coefficients and does not establish the cause of the MSE difference here. The seed, model-selection handling and runtime differ; their individual contributions were not isolated.
+The 70/30 training-validation split uses `random_state=42`. The pipeline refits the selected Ridge alpha, logs that value in MLflow, and packages matching model and encoding files for the API. The held-out test MSE is **79.6481**, RMSE **8.9246 minutes**, and mean prediction **4.4765 minutes**.
 
 ## A separate grocery MLOps design
 
