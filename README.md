@@ -7,7 +7,7 @@ I built a service that an airline planner can query for the **average departure 
 ## From flight records to a prediction
 
 1. **Prepare the data.** Filter the raw on-time records to Atlanta departures, remove duplicates and incomplete records, and build the mapping between IATA airport codes and numeric BTS IDs. The preparation script produced 22,580 cleaned flight records. [Preprocessing code](src/preprocess.py) · [DVC data pointers](data/)
-2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8. Test MSE was 79.65 minutes squared and the mean prediction was 4.48 minutes. [Training script](src/train.py) · [Performance plot](assets/performance_plot.png)
+2. **Train and evaluate.** Group by destination and scheduled times to model average delay. Sweep 20 Ridge penalties, track experiments in MLflow and evaluate on later dates. The selected alpha was 3.8; the full held-out metrics are in [Reproducibility](#reproducibility). [Training script](src/train.py) · [Performance plot](assets/performance_plot.png)
 3. **Serve and test.** FastAPI loads the model and encoding files from `src/`. The root and packaged entry points share that service. Tests cover a valid prediction, airport aliases, invalid inputs and missing parameters. GitHub Actions builds the Docker image, runs the six API tests and checks the running service. [Tests](tests/test_api.py) · [GitHub Actions](.github/workflows/validate.yml) · [Dockerfile](Dockerfile)
 
 ## Run and test
@@ -51,10 +51,11 @@ The 70/30 training-validation split uses `random_state=42`. The pipeline refits 
 
 ## A separate grocery MLOps design
 
-The [Kronkers case study](docs/kronkers-mlops-design.md) explains how to tie a grocery forecast to stockouts, monitoring, retraining and rollback decisions.
+The [grocery-chain case study](docs/kronkers-mlops-design.md) explains how to tie a grocery forecast to stockouts, monitoring, retraining and rollback decisions.
 
 ## Data and environment
 
-[Data origin and reuse notes](data/README.md). Install [requirements.txt](requirements.txt), which includes [the checked direct package versions](requirements-verified.txt). Preprocessing and MLflow training were rerun with these direct package versions on Python 3.13.1, reproducing MSE 79.6481 and RMSE 8.9246. The six API tests and Docker validation are described in [validation details](docs/validation.md). These are direct dependency pins, not a complete transitive lockfile.
+Data: WGU on-time reporting extract; [source and DVC notes](data/README.md).  
+Install: `python -m pip install -r requirements.txt`; [environment details](requirements-verified.txt).
 
 *WGU M.S. in Data Analytics coursework, D602 Deployment.*

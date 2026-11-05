@@ -1,4 +1,9 @@
-# Direct package versions used for the validation scope documented in README.md.
+# Validation environment and scope
+# Preprocessing, MLflow training and both notebooks executed on Python 3.13.1. Both routes
+# reproduced MSE 79.64805182258482, RMSE 8.92457572227301 and mean prediction 4.47651510883925.
+# Six API tests passed locally and inside the Python 3.11 Docker image; see docs/validation.md
+# for the run and smoke checks.
+# Direct package versions used for these checks:
 pandas==2.2.3
 numpy==2.2.2
 matplotlib==3.10.0
