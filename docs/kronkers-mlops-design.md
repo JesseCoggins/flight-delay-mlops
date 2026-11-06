@@ -1,5 +1,7 @@
 # Kronkers · Deploying demand forecasts for a grocery business
 
+This written coursework case study is separate from the flight-delay implementation. It proposes deployment requirements for a supermarket scenario; it does not describe a deployed grocery system.
+
 Kronkers is a regional supermarket scenario from WGU. Fifteen analysts and data scientists work in several languages and share models through folders. With a 1.9% profit margin in the case, even a more accurate forecast has to justify its operating cost. A useful first question is whether it helps stores avoid stockouts or excess inventory in time for the next order.
 
 ## From a forecast to a store decision

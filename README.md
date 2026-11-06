@@ -55,9 +55,9 @@ I used a 70/30 training-validation split with `random_state=42` and refitted the
 
 I tested alpha values from 0.0 through 3.8 in steps of 0.2. The best tested value, 3.8, is at the upper boundary; a better value may lie beyond that range.
 
-## A separate grocery MLOps design
+## Additional coursework case study
 
-The [grocery-chain case study](docs/kronkers-mlops-design.md) explains how to tie a grocery forecast to stockouts, monitoring, retraining and rollback decisions.
+Kronkers is a supermarket scenario from a separate business-case assignment in the same deployment course. The [grocery-chain MLOps design](docs/kronkers-mlops-design.md) covers proposed forecasting, monitoring, retraining and rollback requirements. It is a written design, separate from the flight-delay implementation and its reported results.
 
 ## Data and environment
 
